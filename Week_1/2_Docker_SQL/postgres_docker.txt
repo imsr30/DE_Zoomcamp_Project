@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+// This is the container that runs postgresql
+docker run -it \
+  -e POSTGRES_USE="root" \
+  -e POSTGRES_PASSWOR="root" \
+  -e POSTGRES_D="ny_taxi" \
+  -v C:/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
+  -v C:/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:13
+
+
+// This is the container that runs pgadmin4
+docker run -it \
+  -e PGADMIN_DEFAULT_EMAI="admin@admin.com" \
+  -e PGADMIN_DEFAULT_PASSWOR="root" \
+  -p 8080:80 \
+  dpage/pgadmin4
+
+
+// create a new network
+docker network create pg-network
+
+
+  // This is the container that runs postgres with network
+docker run -it \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
+  -e POSTGRES_DB="ny_taxi" \
+  -v C:/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  --network=pg-network \
+  --name pg-database \
+  postgres:13
+
+
+// This is the container that runs pgadmin4 with network
+docker run -it \
+  -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+  -e PGADMIN_DEFAULT_PASSWORD="root" \
+  -p 8080:80 \
+  --network=pg-network \
+  --name pg-admin \
+  dpage/pgadmin4
+
+
+// Python Code for Ingestion
+
+URL='https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz'
+python data_ingestion.py \
+  --user=root \
+  --password=root \
+  --host=localhost \
+  --port=5432 \
+  --database=ny_taxi \
+  --tablename=yellow_taxi_data \
+  --url=${URL}
+
+// Create a Container to run the Pipeline
+
+docker build -t taxi_ingestion:v1 -f DockerFile .
+
+// Pass the Parameters
+
+URL='https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz'
+docker run -it \
+  --network=pg-network \
+  taxi_ingestion:v1 \
+    --user=root \
+    --password=root \
+    --host=pg-database \
+    --port=5432 \
+    --database=ny_taxi \
+    --tablename=yellow_taxi_data \
+    --url=${URL}
