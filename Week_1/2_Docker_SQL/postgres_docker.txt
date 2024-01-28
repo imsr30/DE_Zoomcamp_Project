@@ -13,10 +13,45 @@ services:
       retries: 5
     restart: always
 
+// This is the container that runs postgres
 docker run -it \
   -e POSTGRES_USER="root" \
   -e POSTGRES_PASSWORD="root" \
   -e POSTGRES_DB="ny_taxi" \
-  -v D:/DataTalksClub-DE-Project/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
+  -v C:/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
   -p 5432:5432 \
   postgres:13
+
+
+// This is the container that runs pgadmin4
+docker run -it \
+  -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+  -e PGADMIN_DEFAULT_PASSWORD="root" \
+  -p 8080:80 \
+  dpage/pgadmin4
+
+
+// create a new network
+docker network create pg-network
+
+
+  // This is the container that runs postgres with network
+docker run -it \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
+  -e POSTGRES_DB="ny_taxi" \
+  -v C:/DE_Zoomcamp_Project/Week_1/2_Docker_SQL/ny_taxi_pg:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  --network=pg-network \
+  --name pg-database \
+  postgres:13
+
+
+// This is the container that runs pgadmin4 with network
+docker run -it \
+  -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+  -e PGADMIN_DEFAULT_PASSWORD="root" \
+  -p 8080:80 \
+  --network=pg-network \
+  --name pg-admin \
+  dpage/pgadmin4
